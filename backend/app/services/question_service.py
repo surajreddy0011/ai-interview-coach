@@ -1,9 +1,17 @@
 import os
 import json
+import re
 from typing import Optional, List
 from anthropic import Anthropic
 
 client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+
+def extract_json(text: str) -> str:
+    text = text.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    return text.strip()
 
 
 def generate_questions(role: str, job_description: Optional[str] = None) -> List[str]:
@@ -19,7 +27,7 @@ def generate_questions(role: str, job_description: Optional[str] = None) -> List
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}]
     )
-    text = response.content[0].text
+    text = extract_json(response.content[0].text)
     data = json.loads(text)
     return data["questions"]
 
@@ -42,7 +50,7 @@ Return ONLY valid JSON in this exact format, nothing else:
         messages=[{"role": "user", "content": prompt}]
     )
 
-    text = response.content[0].text.strip()
+    text = extract_json(response.content[0].text)
 
     try:
         data = json.loads(text)
